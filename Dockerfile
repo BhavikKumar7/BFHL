@@ -1,17 +1,21 @@
-# Use lightweight Java image
+# -------- BUILD STAGE --------
+FROM maven:3.9.9-eclipse-temurin-17 AS build
+
+WORKDIR /app
+COPY pom.xml .
+RUN mvn -q -e -B -DskipTests dependency:go-offline
+
+COPY src ./src
+RUN mvn -q -DskipTests package
+
+
+# -------- RUN STAGE --------
 FROM eclipse-temurin:17-jdk-jammy
 
-# Create app directory
 WORKDIR /app
 
-# Copy project files
-COPY . .
+COPY --from=build /app/target/*.jar app.jar
 
-# Build the jar
-RUN ./mvnw -q -DskipTests package || mvn -q -DskipTests package
-
-# Expose port
 EXPOSE 8080
 
-# Run application
-CMD ["java", "-jar", "target/bfhl-api-1.0.jar"]
+ENTRYPOINT ["java","-jar","/app/app.jar"]
